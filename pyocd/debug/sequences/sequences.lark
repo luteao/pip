@@ -1,0 +1,127 @@
+// Lark grammar for debug sequence expressions
+//
+// Copyright (c) 2020-2021 Chris Reed
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Precedence from high to low:
+// 1. function call, parentheses
+// 2. unary ! ~
+// 3. * / %
+// 4. + -
+// 5. << >>
+// 6. < <= > >=
+// 7. == !=
+// 8. &
+// 9. ^
+// 10. |
+// 11. &&
+// 12. ||
+// 13. ?:
+
+start:                  statement*
+
+?statement:             decl_stmt ";"?
+    |                   assign_stmt ";"?
+    |                   expr_stmt ";"?
+
+// Allow __var declarations with no initialiser expression even though this is disallowed
+// by the specification, for greater compatibility.
+decl_stmt:              "__var" IDENT ["=" expr]
+
+assign_stmt:            IDENT COMPOUND_ASSIGN_OP expr
+
+// This creates a tree node for expression statements that is easy to identify.
+expr_stmt:              expr
+
+?expr:                  logical_or_expr
+    |                   ternary_expr
+    |                   STRLIT
+
+ternary_expr:           expr "?" expr ":" expr
+
+?logical_or_expr:       logical_and_expr
+    |                   logical_or_expr LOGOR_OP logical_and_expr -> binary_expr
+
+?logical_and_expr:      bitwise_or_expr
+    |                   logical_and_expr LOGAND_OP bitwise_or_expr -> binary_expr
+
+?bitwise_or_expr:       bitwise_xor_expr
+    |                   bitwise_or_expr BITOR_OP bitwise_xor_expr -> binary_expr
+
+?bitwise_xor_expr:      bitwise_and_expr
+    |                   bitwise_xor_expr BITXOR_OP bitwise_and_expr -> binary_expr
+
+?bitwise_and_expr:      equality_expr
+    |                   bitwise_and_expr BITAND_OP equality_expr -> binary_expr
+
+?equality_expr:         relational_expr
+    |                   equality_expr EQ_OP relational_expr -> binary_expr
+
+?relational_expr:       bitwise_shift_expr
+    |                   relational_expr REL_OP bitwise_shift_expr -> binary_expr
+
+?bitwise_shift_expr:    add_expr
+    |                   bitwise_shift_expr SHIFT_OP add_expr -> binary_expr
+
+?add_expr:              multiply_expr
+    |                   add_expr ADD_OP multiply_expr -> binary_expr
+
+?multiply_expr:         unary_expr
+    |                   multiply_expr MULT_OP unary_expr -> binary_expr
+
+?unary_expr:            atom
+    |                   UNARY_OP unary_expr -> unary_expr
+
+?atom:                  IDENT
+    |                   INTLIT
+    |                   fncall
+    |                   "(" expr ")"
+
+fncall:                 IDENT "("  ")"
+    |                   IDENT "(" expr ( "," expr )* ")"
+
+
+BINDIGIT: "0".."1"
+INTLIT: "0x" HEXDIGIT+ | "0b" BINDIGIT+ | DIGIT+
+
+STRLIT: ESCAPED_STRING
+
+IDENT: CNAME
+
+// These operator definitions are ordered to match correctly.
+// Do not reorder without extensive testing.
+LOGOR_OP: "||"
+LOGAND_OP: "&&"
+BITOR_OP: "|"
+BITXOR_OP: "^"
+BITAND_OP: "&"
+EQ_OP.2: "==" | "!="
+SHIFT_OP.2: "<<" | ">>"
+REL_OP: "<=" | "<" | ">=" | ">"
+ADD_OP: "+" | "-"
+MULT_OP: "*" | "/" | "%"
+UNARY_OP: "!" | "~"
+COMPOUND_ASSIGN_OP: "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=" | "="
+
+COMMENT: /\s*/ "//" /[^\n]*/
+
+%import common.DIGIT
+%import common.HEXDIGIT
+%import common.ESCAPED_STRING
+%import common.WS
+%import common.CNAME
+
+%ignore WS
+%ignore COMMENT
