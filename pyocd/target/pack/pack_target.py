@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from ...utility.sequencer import CallSequence
     from ...coresight.ap import APAddressBase
     from ...core.core_target import CoreTarget
+    from ...commands.execution_context import CommandSet
 
 try:
     import cmsis_pack_manager
@@ -479,6 +480,12 @@ class _PackTargetMethods:
         core.node_name = pname
         CoreSightTarget.add_core(_self, core)
 
+    @staticmethod
+    def _pack_target_add_target_command_groups(_self, command_set: "CommandSet"):
+        """@brief Add pack related commands to the command set."""
+        command_set.add_command_group('pack-target')
+
+
 class PackTargets:
     """@brief Namespace for CMSIS-Pack target generation utilities. """
 
@@ -523,6 +530,7 @@ class PackTargets:
                         "create_init_sequence": _PackTargetMethods._pack_target_create_init_sequence,
                         "configure_core_reset": _PackTargetMethods._pack_target_configure_core_reset,
                         "add_core": _PackTargetMethods._pack_target_add_core,
+                        "add_target_command_groups": _PackTargetMethods._pack_target_add_target_command_groups,
                     })
             return targetClass
         except (MalformedCmsisPackError, FileNotFoundError) as err:
