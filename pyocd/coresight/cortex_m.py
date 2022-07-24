@@ -17,7 +17,7 @@
 
 import logging
 from time import sleep
-from typing import (Any, Callable, List, Optional, overload, Sequence, TYPE_CHECKING, Union, cast)
+from typing import (Any, Callable, List, Optional, Set, overload, Sequence, TYPE_CHECKING, Union, cast)
 from typing_extensions import Literal
 
 from ..core.target import Target
@@ -230,7 +230,13 @@ class CortexM(CoreTarget, CoreSightCoreComponent): # lgtm[py/multiple-calls-to-i
         self._elf = None
         self.target_xml = None
         self._core_registers = CoreRegistersIndex()
-        self._supports_vectreset: bool = False
+        self._supported_reset_types: Set[Target.ResetType] = {
+            Target.ResetType.HW,
+            Target.ResetType.SW,
+            Target.ResetType.SW_EMULATED,
+            Target.ResetType.SW_SYSRESETREQ,
+            # No SW_VECTRESET since only v7-M cores support it
+        }
         self._reset_catch_delegate_result: DelegateResult = False
         self._reset_catch_saved_demcr: int = 0
         self.fpb: Optional[FPB] = None
@@ -290,6 +296,11 @@ class CortexM(CoreTarget, CoreSightCoreComponent): # lgtm[py/multiple-calls-to-i
         return self._core_registers
 
     @property
+    def supported_reset_types(self) -> Set[Target.ResetType]:
+        """@brief Set of reset types that can be used with this target."""
+        return self._supported_reset_types
+
+    @property
     def elf(self) -> Optional["ELFBinaryFile"]:
         return self._elf
 
@@ -303,7 +314,16 @@ class CortexM(CoreTarget, CoreSightCoreComponent): # lgtm[py/multiple-calls-to-i
 
     @default_reset_type.setter
     def default_reset_type(self, reset_type: Target.ResetType) -> None:
+        """@brief Modify the default software reset method.
+        @param self
+        @param reset_type Must be one of the software reset types: Target.ResetType.SW_SYSRESETREQ,
+            Target.ResetType.SW_VECTRESET, or Target.ResetType.SW_EMULATED.
+        @exception ValueError The provided reset type is not supported for this target; see
+            `supported_reset_types` property.
+        """
         assert isinstance(reset_type, Target.ResetType)
+        if reset_type not in self._supported_reset_types:
+            raise ValueError(f"{reset_type.name} reset type not supported")
         self._default_reset_type = reset_type
 
     @property
@@ -316,10 +336,14 @@ class CortexM(CoreTarget, CoreSightCoreComponent): # lgtm[py/multiple-calls-to-i
         @param self
         @param reset_type Must be one of the software reset types: Target.ResetType.SW_SYSRESETREQ,
             Target.ResetType.SW_VECTRESET, or Target.ResetType.SW_EMULATED.
+        @exception ValueError The provided reset type is not supported for this target; see
+            `supported_reset_types` property.
         """
         assert isinstance(reset_type, Target.ResetType)
         assert reset_type in (Target.ResetType.SW_SYSRESETREQ, Target.ResetType.SW_VECTRESET,
                                 Target.ResetType.SW_EMULATED)
+        if reset_type not in self._supported_reset_types:
+            raise ValueError(f"{reset_type.name} reset type not supported")
         self._default_software_reset_type = reset_type
 
     @property
@@ -400,7 +424,7 @@ class CortexM(CoreTarget, CoreSightCoreComponent): # lgtm[py/multiple-calls-to-i
         # Only v7-M supports VECTRESET.
         if arch == CortexM.ARMv7M:
             self._architecture = CoreArchitecture.ARMv7M
-            self._supports_vectreset = True
+            self._supported_reset_types.add(Target.ResetType.SW_VECTRESET)
         else:
             self._architecture = CoreArchitecture.ARMv6M
 
@@ -747,9 +771,30 @@ class CortexM(CoreTarget, CoreSightCoreComponent): # lgtm[py/multiple-calls-to-i
         if reset_type is Target.ResetType.SW:
             reset_type = self.default_software_reset_type
 
-        # Fall back to emulated sw reset if the vectreset is specified and the core doesn't support it.
-        if (reset_type is Target.ResetType.SW_VECTRESET) and (not self._supports_vectreset):
-            reset_type = Target.ResetType.SW_EMULATED
+        # Choose fallback if the selected reset type is not available.
+        if reset_type not in self._supported_reset_types:
+            # Fall back to emulated sw reset if the vectreset is specified and the core doesn't support it.
+            # Note: at the time of writing, SW_VECTRESET==SW_CORE and SW_SYSRESETREQ==SW_SYSTEM, but this
+            # will probably be changed, thus the asserts to make sure this code is updated when that changes.
+            assert Target.ResetType.SW_VECTRESET is Target.ResetType.SW_CORE
+            assert Target.ResetType.SW_SYSRESETREQ is Target.ResetType.SW_SYSTEM
+            if reset_type is Target.ResetType.SW_VECTRESET:
+                LOG.warning("%s reset type is selected but not available; falling back to emulated core reset",
+                        reset_type.name,
+                        )
+                reset_type = Target.ResetType.SW_EMULATED
+            elif reset_type is Target.ResetType.SW_SYSRESETREQ:
+                if Target.ResetType.HW in self._supported_reset_types:
+                    LOG.warning("%s reset type is selected but not available; falling back to HW reset",
+                            reset_type.name,
+                            )
+                    reset_type = Target.ResetType.HW
+                else:
+                    LOG.warning("%s reset type is selected but not available; falling back to emulated "
+                            "core reset because HW reset is not available either",
+                            reset_type.name,
+                            )
+                    reset_type = Target.ResetType.SW_EMULATED
 
         return reset_type
 
