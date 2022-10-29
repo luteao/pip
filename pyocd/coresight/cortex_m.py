@@ -234,8 +234,8 @@ class CortexM(CoreTarget, CoreSightCoreComponent): # lgtm[py/multiple-calls-to-i
             Target.ResetType.HW,
             Target.ResetType.SW,
             Target.ResetType.SW_EMULATED,
-            Target.ResetType.SW_SYSRESETREQ,
-            # No SW_VECTRESET since only v7-M cores support it
+            Target.ResetType.SW_SYSTEM,
+            Target.ResetType.SW_CORE, # May be removed since only v7-M cores support SW_VECTRESET
         }
         self._last_vector_catch: int = 0
         self.fpb: Optional[FPB] = None
@@ -245,13 +245,11 @@ class CortexM(CoreTarget, CoreSightCoreComponent): # lgtm[py/multiple-calls-to-i
         self._default_reset_type = Target.ResetType.SW
 
         # Select default sw reset type based on whether multicore debug is enabled and which core
-        # this is. Even though SW_VECTRESET isn't added (above) to the supported reset types by default,
-        # and is only supported on v7-M, it's ok to select it here because it will automatically fall
-        # back to SW_EMULATED in ._get_actual_reset_type().
-        self._default_software_reset_type = Target.ResetType.SW_SYSRESETREQ \
+        # this is.
+        self._default_software_reset_type = Target.ResetType.SW_SYSTEM \
                     if (not self.session.options.get('enable_multicore_debug')) \
                             or (self.core_number == self.session.options.get('primary_core')) \
-                    else Target.ResetType.SW_VECTRESET
+                    else Target.ResetType.SW_CORE
 
         # Set up breakpoints manager.
         self.sw_bp = SoftwareBreakpointProvider(self)
@@ -369,6 +367,7 @@ class CortexM(CoreTarget, CoreSightCoreComponent): # lgtm[py/multiple-calls-to-i
         # Examine this CPU.
         self._read_core_type()
         self._check_for_fpu()
+        self._init_reset_types()
         self._build_registers()
         self.get_vector_catch() # Cache the current vector cache settings.
         self.sw_bp.init()
@@ -437,10 +436,9 @@ class CortexM(CoreTarget, CoreSightCoreComponent): # lgtm[py/multiple-calls-to-i
         self.cpu_revision = (cpuid & CortexM.CPUID_VARIANT_MASK) >> CortexM.CPUID_VARIANT_POS
         self.cpu_patch = (cpuid & CortexM.CPUID_REVISION_MASK) >> CortexM.CPUID_REVISION_POS
 
-        # Only v7-M supports VECTRESET.
+        # Set the arch version.
         if arch == CortexM.ARMv7M:
             self._architecture = CoreArchitecture.ARMv7M
-            self._supported_reset_types.add(Target.ResetType.SW_VECTRESET)
         else:
             self._architecture = CoreArchitecture.ARMv6M
 
@@ -491,6 +489,19 @@ class CortexM(CoreTarget, CoreSightCoreComponent): # lgtm[py/multiple-calls-to-i
                 # FPv4 has only single-precision, only present on the CM4F.
                 fpu_type = "FPv4-SP-D16-M"
             LOG.info("FPU present: " + fpu_type)
+
+    def _init_reset_types(self) -> None:
+        """@brief Adjust supported reset types based on the architecture."""
+        # Only v7-M supports VECTRESET.
+        if self._architecture != CoreArchitecture.ARMv7M:
+            self._supported_reset_types.remove(Target.ResetType.SW_CORE)
+
+            # Adjust the default reset types to fall back to emulated if they were set
+            # to core/vectreset.
+            if self._default_reset_type == Target.ResetType.SW_CORE:
+                self._default_reset_type = Target.ResetType.SW_EMULATED
+            if self._default_software_reset_type == Target.ResetType.SW_CORE:
+                self._default_software_reset_type = Target.ResetType.SW_EMULATED
 
     def write_memory(self, addr: int, data: int, transfer_size: int = 32) -> None:
         """@brief Write a single memory location.
