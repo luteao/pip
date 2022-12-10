@@ -172,8 +172,40 @@ class PackDebugSequenceDelegate(DebugSequenceDelegate):
 
         return self._debugvars
 
+    def _is_sequence_manually_disabled(self, name: str, pname: Optional[str] = None) -> bool:
+        """@brief Check session options to see if the sequence has been disabled by the user."""
+        disabled_seqs = self._session.options.get('pack.debug_sequences.disabled_sequences')
+        if not disabled_seqs:
+            return False
+
+        name = name.casefold()
+        if pname is not None:
+            pname = pname.casefold()
+
+        for dseq in disabled_seqs:
+            if ':' in dseq:
+                dseq, core_name = dseq.split(':')
+                core_name = core_name.casefold()
+            else:
+                core_name = None
+            dseq = dseq.casefold()
+
+            if (name == dseq) and ((core_name is None) or (pname == core_name)):
+                return True
+
+        return False
+
     def run_sequence(self, name: str, pname: Optional[str] = None) -> None:
         """@brief Run a top level debug sequence."""
+        pname_desc = f" ({pname})" if (pname and LOG.isEnabledFor(logging.DEBUG)) else ""
+
+        # Handle global debug sequence enable.
+        if not self._session.options.get('pack.debug_sequences.enable'):
+            LOG.debug("Not running debug sequence '%s'%s because all sequences are disabled",
+                    name, pname_desc)
+            return
+
+        # Error out for invalid sequence.
         if not self.has_sequence_with_name(name, pname):
             raise NameError(name)
 
@@ -181,9 +213,12 @@ class PackDebugSequenceDelegate(DebugSequenceDelegate):
         seq = self.get_sequence_with_name(name, pname)
 
         # If the sequence is disabled, we won't run it.
-        pname_desc = f" ({pname})" if (pname and LOG.isEnabledFor(logging.DEBUG)) else ""
         if not seq.is_enabled:
             LOG.debug("Not running disabled debug sequence '%s'%s", name, pname_desc)
+            return
+        # Check for manual disabling of this sequence.
+        if self._is_sequence_manually_disabled(name, pname):
+            LOG.debug("Not running debug sequence '%s'%s because it was manually disabled", name, pname_desc)
             return
 
         LOG.debug("Running debug sequence '%s'%s", name, pname_desc)
