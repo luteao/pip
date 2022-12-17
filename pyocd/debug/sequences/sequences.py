@@ -703,8 +703,11 @@ class SemanticChecker:
                             f"line {tree.meta.line}: function '{fn_name}' is passed too few arguments")
 
                 # Check argument types.
-                assert param.annotation != param.empty, "debug sequence function must have type annotations"
-
+                #
+                # The type of the argument is only checked if a type annotation is present. Type annotations
+                # must be stringified, eg using 'from __future__ import annotations' or Python 3.10. Only
+                # explicit 'str' and 'int' annotation types are currently supported; subclasses of these
+                # types are not (which is why empty annotations are allowed, as a workaround).
                 arg_node = tree.children[param_count]
 
                 # str params require a literal string arg.
