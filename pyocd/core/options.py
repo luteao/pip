@@ -96,6 +96,8 @@ BUILTIN_OPTIONS = [
     OptionInfo('pack', (str, list), None,
         "Path or list of paths to CMSIS Device Family Packs. Devices defined in the pack(s) are "
         "added to the list of available targets."),
+    OptionInfo('pack.debug_sequences.debugvars', str, None,
+        "Variable definition statements to change configurable debug sequence variables."),
     OptionInfo('pack.debug_sequences.disabled_sequences', (str, list), None,
         "Comma-separated list of names of debug sequences to disable for a CMSIS-Pack based target. "
         "Disabled sequences can be restricted to a given core by appending a colon and processor "

@@ -256,6 +256,16 @@ Path or list of paths to CMSIS Device Family Packs. Devices defined in the pack(
 list of available targets.
 </td></tr>
 
+<tr><td>pack.debug_sequences.debugvars</td>
+<td>str</td>
+<td><i>No default</i></td>
+<td>
+Variable definition statements to change configurable variables defined by and used in the target's debug sequences.
+Should be set to a string containing C-style variable assignment statements. C-compatible integer expressions
+are allowed, and can refer to previously defined variables. Only those debug variables whose value is being
+changed need to be assigned a value; others will retain their default value.
+</td></tr>
+
 <tr><td>pack.debug_sequences.disabled_sequences</td>
 <td>str, list of str</td>
 <td><i>No default</i></td>

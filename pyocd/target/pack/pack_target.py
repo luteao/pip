@@ -33,7 +33,7 @@ from ...coresight.coresight_target import CoreSightTarget
 from ...coresight.cortex_m import CortexM
 from ...debug.sequences.delegates import DebugSequenceDelegate
 from ...debug.sequences.functions import DebugSequenceCommonFunctions
-from ...debug.sequences.sequences import (DebugSequence, DebugSequenceExecutionContext)
+from ...debug.sequences.sequences import (Block, DebugSequence, DebugSequenceExecutionContext)
 from ...debug.sequences.scope import Scope
 from ...debug.svd.loader import SVDFile
 from ...core.session import Session
@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from ...utility.sequencer import CallSequence
     from ...core.core_target import CoreTarget
     from ...commands.execution_context import CommandSet
+    from ...utility.notification import Notification
 
 try:
     import cmsis_pack_manager
@@ -148,6 +149,8 @@ class PackDebugSequenceDelegate(DebugSequenceDelegate):
         self._debugvars: Optional[Scope] = None
         self._functions = DebugSequenceCommonFunctions()
 
+        self._session.options.subscribe(self._debugvars_did_change, 'pack.debug_sequences.debugvars')
+
     @property
     def all_sequences(self) -> Set[DebugSequence]:
         return self._sequences
@@ -159,6 +162,8 @@ class PackDebugSequenceDelegate(DebugSequenceDelegate):
 
     def get_root_scope(self, context: DebugSequenceExecutionContext) -> Scope:
         """@brief Return a scope that will be used as the parent of sequences."""
+        # TODO should a fresh exec context be used? debugvars aren't supposed to depend on any
+        # runtime debug settings nor do they even have access to those variables.
         if self._debugvars is not None:
             return self._debugvars
 
@@ -170,9 +175,31 @@ class PackDebugSequenceDelegate(DebugSequenceDelegate):
             # This is the only case where a Block will be pushed to the context stack.
             with context.push(debugvars_block, self._debugvars):
                 debugvars_block.execute(context)
-        self._debugvars.freeze() # Make all vars read-only.
+
+        # Now run the debugvars session option, if defined, as a block to override default
+        # debugvars values from the <debugvars> element.
+        debugvars_option = self._session.options.get('pack.debug_sequences.debugvars')
+        if (debugvars_option is not None) and (debugvars_option.strip() != ""):
+            debugvars_option_block = Block(debugvars_option)
+            # This is the only case where a Block will be pushed to the context stack.
+            with context.push(debugvars_option_block, self._debugvars):
+                debugvars_option_block.execute(context)
+
+        # Make all vars read-only.
+        self._debugvars.freeze()
+
+        # Debug log all debugvar values.
+        if LOG.isEnabledFor(logging.DEBUG):
+            for name in sorted(self._debugvars.variables):
+                value = self._debugvars.get(name)
+                LOG.debug(f"debugvar '{name}' = {value:#x} ({value:d})")
 
         return self._debugvars
+
+    def _debugvars_did_change(self, notification: Notification) -> None:
+        """@brief Notification handler for change to pack.debug_sequences.debugvars option."""
+        # Clear the cached debugvars scope to force it to be rebuilt.
+        self._debugvars = None
 
     def _is_sequence_manually_disabled(self, name: str, pname: Optional[str] = None) -> bool:
         """@brief Check session options to see if the sequence has been disabled by the user."""
