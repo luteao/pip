@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import logging
 import os
 from typing import (cast, Callable, Dict, IO, Iterable, List, Optional, Set, Tuple, Type, Union, TYPE_CHECKING)
@@ -41,7 +43,6 @@ if TYPE_CHECKING:
     from zipfile import ZipFile
     from cmsis_pack_manager import CmsisPackRef
     from ...utility.sequencer import CallSequence
-    from ...coresight.ap import APAddressBase
     from ...core.core_target import CoreTarget
     from ...commands.execution_context import CommandSet
 
@@ -75,7 +76,7 @@ class ManagedPacksImpl:
     """
 
     @staticmethod
-    def get_installed_packs(cache: Optional[cmsis_pack_manager.Cache] = None) -> List["CmsisPackRef"]: # type:ignore
+    def get_installed_packs(cache: Optional[cmsis_pack_manager.Cache] = None) -> List[CmsisPackRef]: # type:ignore
         """@brief Return a list containing CmsisPackRef objects for all installed packs."""
         if cache is None:
             cache = cmsis_pack_manager.Cache(True, True)
@@ -352,7 +353,7 @@ class _PackTargetMethods:
         self.debug_sequence_delegate = PackDebugSequenceDelegate(self, self._pack_device)
 
     @staticmethod
-    def _pack_target_create_init_sequence(self) -> "CallSequence": # type:ignore
+    def _pack_target_create_init_sequence(self) -> CallSequence: # type:ignore
         """@brief Creates an init task to set the default reset type."""
         seq = super(self.__class__, self).create_init_sequence()
 
@@ -402,10 +403,10 @@ class _PackTargetMethods:
 
             # Special case to enable processor reset even when the core doesn't support VECTRESET, if
             # there is a non-default ResetProcessor sequence definition.
-            if ((Target.ResetType.SW_CORE not in updated_reset_types)
+            if ((Target.ResetType.SW_CORE not in updated_reset_types) # type:ignore
                     and ('ResetProcessor' in sequences)
                     and sequences['ResetProcessor'].is_enabled):
-                updated_reset_types.add(Target.ResetType.SW_CORE)
+                updated_reset_types.add(Target.ResetType.SW_CORE) # type:ignore
 
             core._supported_reset_types = updated_reset_types
             LOG.debug(f"updated DFP core #{core_num} reset types: {core._supported_reset_types}")
@@ -474,14 +475,14 @@ class _PackTargetMethods:
             core.default_reset_type = RESET_SEQUENCE_TO_TYPE_MAP[default_reset_seq]
 
     @staticmethod
-    def _pack_target_add_core(_self, core: "CoreTarget") -> None:
+    def _pack_target_add_core(_self, core: CoreTarget) -> None:
         """@brief Override to set node name of added core to its pname."""
         pname = _self._pack_device.processors_ap_map[cast(CortexM, core).ap.address].name
         core.node_name = pname
         CoreSightTarget.add_core(_self, core)
 
     @staticmethod
-    def _pack_target_add_target_command_groups(_self, command_set: "CommandSet"):
+    def _pack_target_add_target_command_groups(_self, command_set: CommandSet):
         """@brief Add pack related commands to the command set."""
         command_set.add_command_group('pack-target')
 
