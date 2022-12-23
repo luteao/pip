@@ -272,8 +272,8 @@ Ignored for builtin targets.
 </td></tr>
 
 <tr><td>pack.debug_sequences.enable</td>
-<td>str, list of str</td>
-<td><i>No default</i></td>
+<td>bool</td>
+<td><i>True</i></td>
 <td>
 Global enable for debug sequences for CMSIS-Pack based targets. Ignored for builtin targets.
 </td></tr>
