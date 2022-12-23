@@ -64,6 +64,14 @@ class Scope:
         """
         return self._parent
 
+    @property
+    def variables(self) -> Set[str]:
+        """@brief Set of the names of all variables defined in this scope.
+
+        Does not include any variables from parent scopes.
+        """
+        return set(self._variables.keys())
+
     def get(self, name: str) -> int:
         """@brief Read a variable."""
         try:
