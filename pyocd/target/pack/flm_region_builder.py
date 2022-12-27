@@ -146,6 +146,13 @@ class FlmFlashRegionBuilder:
             ) -> None:
         """Depending on the sector size(s) defined by the flash algorithm, either simply set
         the parent flash region's attributes or create sector size subregions."""
+        # First set the region's start and end if they weren't set.
+        if region.start == region.end:
+            # Directly access the attributes. Normally region start/end are not settable to
+            # prevent modification of regions in a memory map such that they overlap.
+            region._start = pack_algo.flash_start
+            region._end = pack_algo.flash_start + pack_algo.flash_size - 1
+
         # Don't need to create subregions if there is a single sector size and its range
         # starts at the same address and is equal or larger than the parent flash region.
         sector_sizes = list(pack_algo.iter_sector_size_ranges())
