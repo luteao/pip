@@ -106,6 +106,10 @@ class DebugSequenceFunctionsDelegate:
 
     All defined functions must have type annotations. Any function that has a fixed return value of 0
     should return None. This will be converted to 0 by the interpreter.
+
+    The function names must be all lower-case in order to support case-insensitive symbol lookup.
+    Whether this is actually correct debug sequence behaviour is unknown since it's not documented
+    in the Open-CMSIS-Pack specification (version 1.7.15) as of late December 2022.
     """
 
     @property

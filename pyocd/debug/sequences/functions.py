@@ -145,7 +145,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
         errcontrol = self.context.get_variable('__errorcontrol')
         return (errcontrol & 1) == 1
 
-    def Sequence(self, name: str) -> None:
+    def sequence(self, name: str) -> None:
         # This call will raise if the named sequence is invalid. However, we should have already
         # verified the sequence name is valid during semantic checking.
         #
@@ -161,7 +161,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
         # Run the sequence.
         seq.execute(self.context)
 
-    def Read8(self, addr: int) -> int:
+    def read8(self, addr: int) -> int:
         try:
             return self._get_mem_ap().read8(addr)
         except exceptions.TransferError as err:
@@ -171,7 +171,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def Read16(self, addr: int) -> int:
+    def read16(self, addr: int) -> int:
         try:
             return self._get_mem_ap().read16(addr)
         except exceptions.TransferError as err:
@@ -181,7 +181,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def Read32(self, addr: int) -> int:
+    def read32(self, addr: int) -> int:
         try:
             return self._get_mem_ap().read32(addr)
         except exceptions.TransferError as err:
@@ -191,7 +191,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def Read64(self, addr: int) -> int:
+    def read64(self, addr: int) -> int:
         try:
             return self._get_mem_ap().read64(addr)
         except exceptions.TransferError as err:
@@ -201,7 +201,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def ReadAP(self, addr: int) -> int:
+    def readap(self, addr: int) -> int:
         try:
             ap_addr = self._get_ap_addr()
             reg_addr = ap_addr.address | addr
@@ -213,7 +213,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def ReadAccessAP(self, addr: int) -> int:
+    def readaccessap(self, addr: int) -> int:
         try:
             dp = self._get_dp(True)
             apacc = dp.apacc_memory_interface
@@ -225,7 +225,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def ReadDP(self, addr: int) -> int:
+    def readdp(self, addr: int) -> int:
         try:
             return self._get_dp(True).read_dp(addr)
         except exceptions.TransferError as err:
@@ -235,7 +235,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def Write8(self, addr: int, val: int) -> None:
+    def write8(self, addr: int, val: int) -> None:
         try:
             self._get_mem_ap().write8(addr, val)
             self.target.flush()
@@ -245,7 +245,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def Write16(self, addr: int, val: int) -> None:
+    def write16(self, addr: int, val: int) -> None:
         try:
             self._get_mem_ap().write16(addr, val)
             self.target.flush()
@@ -255,7 +255,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def Write32(self, addr: int, val: int) -> None:
+    def write32(self, addr: int, val: int) -> None:
         try:
             self._get_mem_ap().write32(addr, val)
             self.target.flush()
@@ -265,7 +265,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def Write64(self, addr: int, val: int) -> None:
+    def write64(self, addr: int, val: int) -> None:
         try:
             self._get_mem_ap().write64(addr, val)
             self.target.flush()
@@ -275,7 +275,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def WriteAP(self, addr: int, val: int) -> None:
+    def writeap(self, addr: int, val: int) -> None:
         try:
             ap_addr = self._get_ap_addr()
             reg_addr = ap_addr.address | addr
@@ -287,7 +287,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def WriteAccessAP(self, addr: int, val: int) -> None:
+    def writeaccessap(self, addr: int, val: int) -> None:
         try:
             dp = self._get_dp(True)
             apacc = dp.apacc_memory_interface
@@ -299,7 +299,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def WriteDP(self, addr: int, val: int) -> None:
+    def writedp(self, addr: int, val: int) -> None:
         try:
             self._get_dp(True).write_dp(addr, val)
             self.target.flush()
@@ -309,10 +309,10 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             else:
                 raise
 
-    def FlashBufferWrite(self, addr: int, offset: int, length: int, mode: int) -> None:
+    def flashbufferwrite(self, addr: int, offset: int, length: int, mode: int) -> None:
         raise NotImplementedError()
 
-    def DAP_Delay(self, delay: int) -> None:
+    def dap_delay(self, delay: int) -> None:
         # Flush before sleeping, in case there are any outstanding transactions.
         self.target.flush()
 
@@ -320,7 +320,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
         # cases this will work fine. However, it would fail for atomic sequences.
         sleep(delay / 1e6)
 
-    def DAP_WriteABORT(self, value: int) -> None:
+    def dap_writeabort(self, value: int) -> None:
         assert self.context.session.probe
         mode = self.context.session.probe.wire_protocol
         if mode == DebugProbe.Protocol.SWD:
@@ -330,7 +330,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             self._get_dp().write_reg(self.DP_ABORT, value)
         self.target.flush()
 
-    def DAP_SWJ_Pins(self, pinout: int, pinselect: int, pinwait: int) -> int:
+    def dap_swj_pins(self, pinout: int, pinselect: int, pinwait: int) -> int:
         """
         Pin bits:
         - Bit 0: SWCLK/TCK
@@ -363,11 +363,11 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
 
         return result
 
-    def DAP_SWJ_Clock(self, val: int) -> None:
+    def dap_swj_clock(self, val: int) -> None:
         assert self.context.session.probe
         self.context.session.probe.set_clock(val)
 
-    def DAP_SWJ_Sequence(self, cnt: int, val: int) -> None:
+    def dap_swj_sequence(self, cnt: int, val: int) -> None:
         probe = self.context.session.probe
         assert probe
         if DebugProbe.Capability.SWJ_SEQUENCE not in probe.capabilities:
@@ -375,7 +375,7 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
                     "debug sequence called DAP_SWJ_Sequence, but debug probe does not support this operation")
         probe.swj_sequence(cnt, val)
 
-    def DAP_JTAG_Sequence(self, cnt: int, tms: int, tdi: int) -> int:
+    def dap_jtag_sequence(self, cnt: int, tms: int, tdi: int) -> int:
         probe = self.context.session.probe
         assert probe
         if DebugProbe.Capability.JTAG_SEQUENCE not in probe.capabilities:
@@ -384,12 +384,12 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
         tdo = probe.jtag_sequence(cnt, tms, True, tdi)
         return tdo or 0
 
-    def Query(self, type: int, message: str, default: int) -> int:
+    def query(self, type: int, message: str, default: int) -> int:
         LOG.info(f"Query({type}): {message} [{default}]")
         # Just return the default value since we're running in "batch" mode.
         return default
 
-    def QueryValue(self, message: str, default: int) -> int:
+    def queryvalue(self, message: str, default: int) -> int:
         LOG.info(f"QueryValue: {message} [{default}]")
         # Just return the default value since we're running in "batch" mode.
         return default
@@ -399,11 +399,11 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
         1: logging.WARNING,
         2: logging.ERROR,
     }
-    def Message(self, type: int, format: str, *args: int) -> None:
+    def message(self, type: int, format: str, *args: int) -> None:
         level = self._MESSAGE_LEVEL_MAP.get(type, 2) # default to error for invalid type
         LOG.log(level, format % args)
 
-    def LoadDebugInfo(self, file: str) -> int:
+    def loaddebuginfo(self, file: str) -> int:
         # Return 1 to indicate failure.
         return 1
 

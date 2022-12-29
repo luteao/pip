@@ -674,6 +674,9 @@ class SemanticChecker:
             assert isinstance(fn_name, str)
             # TRACE.debug("checking %s (%s)", fn_name, tree.children[1:])
 
+            # Case-insensitive match.
+            fn_name = fn_name.lower()
+
             # Look up the function on the delegate.
             try:
                 impl = getattr(self._fns, fn_name)
@@ -855,6 +858,9 @@ class Interpreter:
             values = self.visit_children(tree)
             fn_name = values[0]
             fn_args = [self._get_atom(a) for a in values[1:]]
+
+            # Case-insensitive match.
+            fn_name = fn_name.lower()
 
             TRACE.debug("(line %d): fn %s (%s) ...", getattr(tree.meta, 'line', 0), fn_name,
                 ", ".join(self._format_atom(a) for a in values[1:]))

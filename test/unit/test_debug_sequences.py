@@ -56,7 +56,7 @@ class SequenceFunctionsDelegateForTesting:
     def fn_with_str_parm(self, foo: str):
         pass
 
-    def Sequence(self, name: str):
+    def sequence(self, name: str):
         pass
 
 class SequenceDelegateForTesting:
