@@ -248,7 +248,6 @@ class TestDebugSequenceParser:
         assert fncall.data == 'fncall'
         assert len(fncall.children) == 1 # IDENT only
         assert fncall.children[0] == LarkToken('IDENT', 'myfunc')
-#         assert False
 
     def test_fncall_3_arg(self):
         ast = Parser().parse("myfunc(1, 2, 3);")
@@ -264,6 +263,11 @@ class TestDebugSequenceParser:
     def test_bad_input(self):
         with pytest.raises(exceptions.Error):
             Parser().parse("bad input ••• wooo")
+
+    def test_unary_op_assign(self):
+        # Statement from Infineon.PSoC6_DFP
+        ast = Parser().parse("__Result = -1; // DAP is unavailable")
+        print("ast=", ast)
 
 class TestDebugSequenceBlockExecute:
     def test_semicolons(self, block_context):
@@ -394,6 +398,14 @@ class TestDebugSequenceBlockExecute:
         actual = block_context.current_scope.get("x")
         assert actual == result
 
+    def test_unary_op_assign(self, block_context):
+        # Statement from Infineon.PSoC6_DFP
+        s = Block("__Result = -1; // DAP is unavailable")
+        logging.info(f"Block: {s._ast.pretty()}")
+        s.execute(block_context)
+        actual = block_context.current_scope.get("__Result")
+        assert actual == 0xffffffffffffffff
+
 class TestConstantFolder:
     def _get_folded_ast(self, expr):
         ast = Parser.parse(expr)
@@ -471,6 +483,13 @@ class TestConstantFolder:
         assert ast_opt.data == 'start'
         assert ast_opt.children[0].data == 'expr_stmt'
         assert ast_opt.children[0].children[0].data == 'unary_expr'
+
+    @pytest.mark.parametrize(("expr", "expected"), [
+            ("-1",   0xffffffffffffffff),
+            ("-0",   0),
+        ])
+    def test_unary_fold(self, expr, expected):
+        self._do_fold_test(expr, expected)
 
 class TestSemanticChecker:
 

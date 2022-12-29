@@ -78,16 +78,16 @@ ternary_expr:           expr "?" expr ":" expr
 ?add_expr:              multiply_expr
     |                   add_expr ADD_OP multiply_expr -> binary_expr
 
-?multiply_expr:         unary_expr
-    |                   multiply_expr MULT_OP unary_expr -> binary_expr
-
-?unary_expr:            atom
-    |                   UNARY_OP unary_expr -> unary_expr
+?multiply_expr:         atom
+    |                   multiply_expr MULT_OP atom -> binary_expr
 
 ?atom:                  IDENT
     |                   INTLIT
     |                   fncall
     |                   "(" expr ")"
+    |                   unary_expr
+
+?unary_expr:            UNARY_OP expr -> unary_expr
 
 fncall:                 IDENT "("  ")"
     |                   IDENT "(" expr ( "," expr )* ")"
@@ -107,13 +107,13 @@ LOGAND_OP: "&&"
 BITOR_OP: "|"
 BITXOR_OP: "^"
 BITAND_OP: "&"
-EQ_OP.2: "==" | "!="
-SHIFT_OP.2: "<<" | ">>"
+EQ_OP.3: "==" | "!="
+SHIFT_OP.3: "<<" | ">>"
 REL_OP: "<=" | "<" | ">=" | ">"
-ADD_OP: "+" | "-"
+ADD_OP.1: "+" | "-"
 MULT_OP: "*" | "/" | "%"
-UNARY_OP: "!" | "~"
-COMPOUND_ASSIGN_OP: "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=" | "="
+UNARY_OP: "!" | "~" | "-"
+COMPOUND_ASSIGN_OP.2: "+=" | "-=" | "*=" | "/=" | "%=" | "&=" | "|=" | "^=" | "<<=" | ">>=" | "="
 
 COMMENT: /\s*/ "//" /[^\n]*/
 

@@ -620,7 +620,7 @@ _UNARY_OPS = {
     '~':    lambda v: bit_invert(v, width=64),
     '!':    lambda v: int(not v),
     '+':    lambda v: v,
-    '-':    lambda v: -v,
+    '-':    lambda v: (-v) & 0xffffffffffffffff, # Mask to get unsigned two's complement.
     }
 
 class SemanticChecker:
