@@ -109,8 +109,12 @@ class CoresValue(ValueBase):
 
             for i, core in self.context.target.cores.items():
                 pt.add_row([
-                    str(i) + "*" if ((self.context.selected_core is not None) \
-                                            and (self.context.selected_core.core_number == i)) else "",
+                    (
+                        ("*" if ((self.context.selected_core is not None)
+                                and (self.context.selected_core.core_number == i))
+                            else " ")
+                        + str(i)
+                    ),
                     cast(CoreTarget, core).node_name,
                     core.name,
                 ])
