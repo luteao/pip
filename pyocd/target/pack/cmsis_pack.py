@@ -367,7 +367,7 @@ class CmsisPackDescription:
             inherited = {
                 k: v
                 for k, v in from_elem.attrib.items()
-                if k not in to_elem
+                if k not in to_elem.attrib
             }
             to_elem.attrib.update(inherited)
         return to_elem
@@ -421,8 +421,8 @@ class CmsisPackDescription:
             return (start, size)
 
         def filter(map: Dict, elem: Element) -> None:
-            # Inner memory regions are allowed to override outer memory
-            # regions. If this is not done properly via name/id, we must make
+            # Inner memory regions are allowed to override outer memory regions.
+            # If this is not done properly via name/id, we must make
             # sure not to report overlapping memory regions to gdb since it
             # will ignore those completely, see:
             # https://github.com/pyocd/pyOCD/issues/980
