@@ -48,7 +48,7 @@ class DebugSequenceDelegate:
         """
         raise NotImplementedError()
 
-    def run_sequence(self, name: str, pname: Optional[str] = None) -> None:
+    def run_sequence(self, name: str, pname: Optional[str] = None) -> Optional[Scope]:
         """@brief Execute the debug sequence with the specified name.
         @exception NameError No sequence with the given name is defined.
         """

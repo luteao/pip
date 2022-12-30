@@ -139,7 +139,7 @@ class Scope:
         """
         if name in self._variables:
             return True
-        elif recurse_parents and self._parent:
+        elif recurse_parents and (self._parent is not None):
             return self._parent.is_defined(name, recurse_parents)
         else:
             return False

@@ -272,8 +272,12 @@ class DebugSequenceNode(GraphNode):
     def info(self) -> str:
         return self._info
 
-    def execute(self, context: DebugSequenceExecutionContext) -> None:
-        """@brief Execute the sequence node."""
+    def execute(self, context: DebugSequenceExecutionContext) -> Optional[Scope]:
+        """@brief Execute the sequence node.
+
+        @return If a scope was created in order to execute the sequence node, that scope is returned
+            to the caller so any variables can be accessed.
+        """
         raise NotImplementedError()
 
     def _execute_children(self, context: DebugSequenceExecutionContext) -> None:
@@ -399,13 +403,15 @@ class DebugSequence(DebugSequenceNode):
         scope.set('__FlashArg', 0, readonly=True)
         return scope
 
-    def execute(self, context: DebugSequenceExecutionContext) -> None:
+    def execute(self, context: DebugSequenceExecutionContext) -> Optional[Scope]:
         """@brief Run the sequence."""
         scope = self._create_scope(context)
 
         # Make this the active sequence.
         with context.push(self, scope):
             self._execute_children(context)
+
+        return scope
 
     def __eq__(self, o: object) -> bool:
         return (isinstance(o, DebugSequence)
@@ -444,7 +450,7 @@ class Control(DebugSequenceNode):
         self._predicate = predicate
         self._ast = Parser.parse(predicate)
 
-    def execute(self, context: DebugSequenceExecutionContext) -> None:
+    def execute(self, context: DebugSequenceExecutionContext) -> Optional[Scope]:
         """@brief Run the sequence."""
         # Get our scope and interpreter objects.
         parent_scope = context.current_scope
@@ -476,6 +482,8 @@ class Control(DebugSequenceNode):
                     result = interp.execute()
                     TRACE.debug("%s(%s): pred=%d", self._type.name, self._predicate, result)
 
+        return scope
+
     def __repr__(self):
         return f"<{type(self).__name__}@{id(self):x} {self._ast.pretty()}>"
 
@@ -502,7 +510,7 @@ class Block(DebugSequenceNode):
         self._ast = Parser.parse(code)
         self._is_atomic = is_atomic
 
-    def execute(self, context: DebugSequenceExecutionContext) -> None:
+    def execute(self, context: DebugSequenceExecutionContext) -> Optional[Scope]:
         """@brief Run the sequence."""
         assert context.session.probe
 

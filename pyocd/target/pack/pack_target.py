@@ -224,15 +224,19 @@ class PackDebugSequenceDelegate(DebugSequenceDelegate):
 
         return False
 
-    def run_sequence(self, name: str, pname: Optional[str] = None) -> None:
-        """@brief Run a top level debug sequence."""
+    def run_sequence(self, name: str, pname: Optional[str] = None) -> Optional[Scope]:
+        """@brief Run a top level debug sequence.
+
+        @return The scope created while running the sequence is returned. If the sequence wasn't executed
+            for some reason, e.g. it was disabled, then None is returned instead.
+        """
         pname_desc = f" ({pname})" if (pname and LOG.isEnabledFor(logging.DEBUG)) else ""
 
         # Handle global debug sequence enable.
         if not self._session.options.get('pack.debug_sequences.enable'):
             LOG.debug("Not running debug sequence '%s'%s because all sequences are disabled",
                     name, pname_desc)
-            return
+            return None
 
         # Error out for invalid sequence.
         if not self.has_sequence_with_name(name, pname):
@@ -244,11 +248,11 @@ class PackDebugSequenceDelegate(DebugSequenceDelegate):
         # If the sequence is disabled, we won't run it.
         if not seq.is_enabled:
             LOG.debug("Not running disabled debug sequence '%s'%s", name, pname_desc)
-            return
+            return None
         # Check for manual disabling of this sequence.
         if self._is_sequence_manually_disabled(name, pname):
             LOG.debug("Not running debug sequence '%s'%s because it was manually disabled", name, pname_desc)
-            return
+            return None
 
         LOG.debug("Running debug sequence '%s'%s", name, pname_desc)
 
@@ -274,13 +278,15 @@ class PackDebugSequenceDelegate(DebugSequenceDelegate):
         # to sequence functions.
         with context:
             try:
-                seq.execute(context)
+                executed_scope = seq.execute(context)
             except exceptions.Error as err:
                 if pname:
                     LOG.error("Error while running debug sequence '%s' (core %s): %s", name, pname, err)
                 else:
                     LOG.error("Error while running debug sequence '%s': %s", name, err)
                 raise
+
+        return executed_scope
 
     def sequences_for_pname(self, pname: Optional[str]) -> Dict[str, DebugSequence]:
         # Return *only* sequences with no Pname when passed pname=None. Otherwise we'd have

@@ -159,7 +159,13 @@ class DebugSequenceCommonFunctions(DebugSequenceFunctionsDelegate):
             LOG.debug("Running debug sub-sequence '%s'", name)
 
         # Run the sequence.
-        seq.execute(self.context)
+        subsequence_scope = seq.execute(self.context)
+
+        # Copy the result to parent sequence.
+        if subsequence_scope is not None:
+            result_value = subsequence_scope.get('__Result')
+            LOG.debug("Sub-sequence '%s' result = %d", name, result_value)
+            self.context.current_scope.set('__Result', result_value)
 
     def read8(self, addr: int) -> int:
         try:
