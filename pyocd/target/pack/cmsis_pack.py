@@ -531,12 +531,14 @@ class CmsisPackDescription:
 
                 if '*' in map:
                     map.clear()
-                map[name] = elem
+
+                map[name] = self._inherit_attributes(elem, map.get(name))
             else:
                 # No processor name was provided, so this debug element applies to
-                # all processors.
+                # all processors (well, there should only be one in this case).
+                new_elem = self._inherit_attributes(elem, map.get('*'))
                 map.clear()
-                map['*'] = elem
+                map['*'] = new_elem
 
         return self._extract_items('debugs', filter)
 
