@@ -269,6 +269,26 @@ class TestDebugSequenceParser:
         ast = Parser().parse("__Result = -1; // DAP is unavailable")
         print("ast=", ast)
 
+    def test_assign_minus_negative(self):
+        ast = Parser().parse("a = 1 - -1;")
+        print("ast=", ast)
+        e = ast.children[0].children[2] # start.assign_stmt.binary_expr
+        assert e.children[0] == 1
+        assert e.children[1] == LarkToken('ADD_OP', '-')
+        assert e.children[2].data == 'unary_expr'
+        assert e.children[2].children[0] == LarkToken('UNARY_OP', '-')
+        assert e.children[2].children[1] == 1
+
+    def test_assign_minus_positive(self):
+        ast = Parser().parse("a = 1 - +1;")
+        print("ast=", ast)
+        e = ast.children[0].children[2] # start.assign_stmt.binary_expr
+        assert e.children[0] == 1
+        assert e.children[1] == LarkToken('ADD_OP', '-')
+        assert e.children[2].data == 'unary_expr'
+        assert e.children[2].children[0] == LarkToken('UNARY_OP', '+')
+        assert e.children[2].children[1] == 1
+
 class TestDebugSequenceBlockExecute:
     def test_semicolons(self, block_context):
         block_context.current_scope.set("a", 0)
@@ -297,6 +317,19 @@ class TestDebugSequenceBlockExecute:
         s = Block("__var x; x = 123;")
         s.execute(block_context)
         assert block_context.current_scope.get("x") == 123
+
+    @pytest.mark.parametrize(("expr", "result"), [
+            ("-1", 0xffffffffffffffff),
+            ("-2", 0xfffffffffffffffe),
+            ("!1", 0),
+            ("!0", 1),
+            ("+1", 1),
+            ("~0xffff", 0xffffffffffff0000),
+        ])
+    def test_int_unary_ops(self, block_context, expr, result):
+        s = Block("__var x = %s;" % expr)
+        s.execute(block_context)
+        assert block_context.current_scope.get("x") == result
 
     @pytest.mark.parametrize(("expr", "result"), [
             ("1 + 1", 2),
