@@ -537,6 +537,20 @@ class _ConstantFolder(lark.visitors.Transformer):
     def _is_intlit(self, node: Any) -> bool:
         return isinstance(node, int)
 
+    def ternary_expr(self, children: Any) -> Any:
+        predicate = children[0]
+        true_expr = children[1]
+        false_expr = children[2]
+
+        # Fold ternaries to either true or false branch when the predicate is an integer constant.
+        if self._is_intlit(predicate):
+            if predicate != 0:
+                return true_expr
+            elif predicate == 0:
+                return false_expr
+
+        return LarkTree('ternary_expr', children)
+
     def binary_expr(self, children: Any) -> Any:
         left = children[0]
         op = children[1].value
@@ -835,6 +849,28 @@ class Interpreter:
             expr_value = values.pop()
             TRACE.debug("(line %d): expr stmt = %s", getattr(tree.meta, 'line', 0), self._format_atom(expr_value))
             return self._get_atom(expr_value)
+
+        def ternary_expr(self, tree: LarkTree) -> int:
+            values = self.visit_children(tree)
+
+            predicate = self._get_atom(values[0])
+
+            if not isinstance(predicate, int):
+                raise DebugSequenceSemanticError("ternary expression predicate is not an integer")
+
+            if predicate != 0:
+                result = self._get_atom(values[1])
+            else:
+                result = self._get_atom(values[2])
+
+            TRACE.debug("(line %s): %s ? %s : %s -> %s",
+                    getattr(tree.meta, 'line', 0),
+                    self._format_atom(values[0]),
+                    self._format_atom(values[1]),
+                    self._format_atom(values[2]),
+                    hex(result))
+
+            return result
 
         def binary_expr(self, tree: LarkTree) -> int:
             values = self.visit_children(tree)

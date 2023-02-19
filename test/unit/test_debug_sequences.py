@@ -439,6 +439,18 @@ class TestDebugSequenceBlockExecute:
         actual = block_context.current_scope.get("__Result")
         assert actual == 0xffffffffffffffff
 
+    @pytest.mark.parametrize(("expr", "result"), [
+            ("1 ? (1 + 1) : (1 - 1)", 2),
+            ("0 ? 10: 20", 20),
+            ("1 << 5 ? 17 * (2 + 1) : 0", 51),
+        ])
+    def test_ternary_expr(self, block_context, expr, result):
+        s = Block(f"__var x = {expr};")
+        logging.info("Block: %s", s._ast.pretty())
+        s.execute(block_context)
+        actual = block_context.current_scope.get("x")
+        assert actual == result
+
 class TestConstantFolder:
     def _get_folded_ast(self, expr):
         ast = Parser.parse(expr)
@@ -522,6 +534,15 @@ class TestConstantFolder:
             ("-0",   0),
         ])
     def test_unary_fold(self, expr, expected):
+        self._do_fold_test(expr, expected)
+
+    @pytest.mark.parametrize(("expr", "expected"), [
+            ("1 ? 10 : 20",     10),
+            ("0 ? 1 : 2",       2),
+            ("0 ? 1 : 2 + 2",   4),
+            ("1 + 1 ? 99 : 77", 99),
+        ])
+    def test_ternary_fold(self, expr, expected):
         self._do_fold_test(expr, expected)
 
 class TestSemanticChecker:
