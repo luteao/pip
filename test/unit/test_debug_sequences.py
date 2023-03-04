@@ -274,9 +274,9 @@ class TestDebugSequenceParser:
         print("ast=", ast)
         e = ast.children[0].children[2] # start.assign_stmt.binary_expr
         assert e.children[0] == 1
-        assert e.children[1] == LarkToken('ADD_OP', '-')
+        assert e.children[1] == LarkToken('MINUS', '-')
         assert e.children[2].data == 'unary_expr'
-        assert e.children[2].children[0] == LarkToken('UNARY_OP', '-')
+        assert e.children[2].children[0] == LarkToken('MINUS', '-')
         assert e.children[2].children[1] == 1
 
     def test_assign_minus_positive(self):
@@ -284,9 +284,9 @@ class TestDebugSequenceParser:
         print("ast=", ast)
         e = ast.children[0].children[2] # start.assign_stmt.binary_expr
         assert e.children[0] == 1
-        assert e.children[1] == LarkToken('ADD_OP', '-')
+        assert e.children[1] == LarkToken('MINUS', '-')
         assert e.children[2].data == 'unary_expr'
-        assert e.children[2].children[0] == LarkToken('UNARY_OP', '+')
+        assert e.children[2].children[0] == LarkToken('PLUS', '+')
         assert e.children[2].children[1] == 1
 
 class TestDebugSequenceBlockExecute:
@@ -450,6 +450,23 @@ class TestDebugSequenceBlockExecute:
         s.execute(block_context)
         actual = block_context.current_scope.get("x")
         assert actual == result
+
+    @pytest.mark.parametrize(("expr", "result"), [
+            ("x += 1", 2),
+            ("x -= 1", 0),
+            ("x *= 10", 10),
+            ("x /= 1", 1),
+            ("x %= 1", 0),
+            ("x &= 3", 1),
+            ("x |= 0x40", 0x41),
+            ("x ^= 3", 2),
+            ("x <<= 5", 1 << 5),
+            ("x >>= 0", 1),
+        ])
+    def test_compound_assign(self, block_context, expr, result):
+        s = Block("__var x = 1; %s;" % expr)
+        s.execute(block_context)
+        assert block_context.current_scope.get("x") == result
 
 class TestConstantFolder:
     def _get_folded_ast(self, expr):
