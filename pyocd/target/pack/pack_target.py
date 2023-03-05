@@ -189,10 +189,10 @@ class PackDebugSequenceDelegate(DebugSequenceDelegate):
         self._debugvars.freeze()
 
         # Debug log all debugvar values.
-        if LOG.isEnabledFor(logging.DEBUG):
+        if LOG.isEnabledFor(logging.INFO):
             for name in sorted(self._debugvars.variables):
                 value = self._debugvars.get(name)
-                LOG.debug(f"debugvar '{name}' = {value:#x} ({value:d})")
+                LOG.info(f"debugvar '{name}' = {value:#x} ({value:d})")
 
         return self._debugvars
 
